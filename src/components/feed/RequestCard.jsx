@@ -3,8 +3,10 @@ import React, { useMemo, useState } from "react";
 import { useStorage } from "../../hooks/useStorage";
 import { useAuth } from "../../hooks/useAuth";
 import { ITEM_TYPE_LABELS, SIZE_LABELS } from "../../utils/constants";
+import Icon from "../common/Icon";
+import { shareRequestOnWhatsApp } from "../../utils/share";
 
-const RequestCard = ({ request, onHelp }) => {
+const RequestCard = ({ request, onHelp, onOpenProfile }) => {
   const { getUserById, createMatchRequest, getOutgoingMatchRequests } = useStorage();
   const { currentUser, getTheme, isTraveler } = useAuth();
   const theme = getTheme();
@@ -20,11 +22,11 @@ const RequestCard = ({ request, onHelp }) => {
 
   const alreadySent = outgoing.some((mr) => mr.requestId === request.id && mr.status === "pending");
 
-  const handleOfferHelp = () => {
+  const handleOfferHelp = async () => {
     // If parent passed a handler (FeedView), use it.
     // Otherwise, handle here (recommended).
     if (onHelp) {
-      onHelp(request);
+      await onHelp(request);
       return;
     }
 
@@ -33,7 +35,7 @@ const RequestCard = ({ request, onHelp }) => {
       return;
     }
 
-    const result = createMatchRequest({
+    const result = await createMatchRequest({
       senderId: request.senderId,
       travelerId: currentUser.id,
       requestId: request.id,
@@ -57,7 +59,7 @@ const RequestCard = ({ request, onHelp }) => {
   };
 
   const buttonText = offerSentFlash
-    ? "✓ Offer Sent!"
+    ? "Offer sent"
     : alreadySent
     ? "Offer Pending"
     : "I Can Help";
@@ -85,13 +87,15 @@ const RequestCard = ({ request, onHelp }) => {
       <div style={styles.header}>
         <div style={styles.itemInfo}>
           <h3 style={styles.itemType}>
-            📦 {ITEM_TYPE_LABELS[request.itemType]}
+            <Icon name="box" size={19} /> {ITEM_TYPE_LABELS[request.itemType]}
           </h3>
 
           <div style={styles.senderInfo}>
-            <span>{sender?.name || "Sender"}</span>
+            <button type="button" className="profile-name-link compact" onClick={() => onOpenProfile?.(request.senderId)}>
+              {sender?.name || request.senderName || "Sender"}
+            </button>
             <span style={styles.dot}>•</span>
-            <span>⭐ {sender?.rating?.toFixed(1) || "5.0"}</span>
+            <span className="rating-with-icon"><Icon name="star" size={14} /> {sender?.rating == null ? "New member" : sender.rating.toFixed(1)}</span>
           </div>
         </div>
 
@@ -125,13 +129,18 @@ const RequestCard = ({ request, onHelp }) => {
         )}
       </div>
 
-      <button className="card-action"
-        onClick={handleOfferHelp}
-        disabled={alreadySent || offerSentFlash}
-        style={buttonStyle}
-      >
-        {buttonText}
-      </button>
+      <div className="card-actions">
+        <button type="button" className="secondary-action share-action" onClick={() => shareRequestOnWhatsApp(request)}>
+          <Icon name="share" size={17} /> Share
+        </button>
+        <button className="card-action"
+          onClick={handleOfferHelp}
+          disabled={alreadySent || offerSentFlash}
+          style={buttonStyle}
+        >
+          {buttonText}
+        </button>
+      </div>
     </article>
   );
 };
