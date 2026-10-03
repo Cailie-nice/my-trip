@@ -29,7 +29,7 @@ const AuthShell = ({ children }) => (
   </main>
 );
 
-const LoginSignup = () => {
+const LoginSignup = ({ onBrowse }) => {
   const { signup, login, requestPasswordReset, resendSignupConfirmation, isAuthConfigured } = useAuth();
   const [isLogin, setIsLogin] = useState(true);
   const [selectedRole, setSelectedRole] = useState(null);
@@ -173,10 +173,8 @@ const LoginSignup = () => {
         </form>
         {!isLogin && <button className="text-button back-link centered" onClick={() => setSelectedRole(null)}>← Change account type</button>}
         <p className="auth-switch">{isLogin ? 'New to Chagga?' : 'Already a member?'} <button className="text-button" onClick={switchAuthMode}>{isLogin ? 'Create an account' : 'Sign in'}</button></p>
-        <div className="terms-note">
-          <span>By continuing, you agree to use Chagga responsibly and carry only inspected and permitted items.</span>
-          <LegalLinks compact />
-        </div>
+        {onBrowse && <button type="button" className="browse-marketplace-button" onClick={onBrowse}>Browse trips and requests without an account</button>}
+        <div className="terms-note"><span>By continuing, you agree to use Chagga responsibly and carry only inspected and permitted items.</span><LegalLinks compact /></div>
       </div>
     </AuthShell>
   );

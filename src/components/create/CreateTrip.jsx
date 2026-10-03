@@ -1,22 +1,18 @@
 import React, { useState } from "react";
 import { useStorage } from "../../hooks/useStorage";
-import { AFRICAN_CITIES, EUROPEAN_CITIES, ITEM_TYPE_LABELS, SIZE_LABELS } from "../../utils/constants";
+import { ITEM_TYPE_LABELS } from "../../utils/constants";
+import LocationFields from "../common/LocationFields";
 import Icon from "../common/Icon";
 
-const CityOptions = () => <>
-  <optgroup label="Africa">{AFRICAN_CITIES.map((city) => <option key={city}>{city}</option>)}</optgroup>
-  <optgroup label="Europe — priority corridors">{EUROPEAN_CITIES.map((city) => <option key={city}>{city}</option>)}</optgroup>
-</>;
+const SPACE_OPTIONS = { small: "Up to 1 kg", medium: "1–3 kg", large: "3–5 kg" };
 
 const CreateTrip = ({ onClose, onCreate, initialData = null }) => {
   const { createTrip } = useStorage();
   const [formData, setFormData] = useState({
-    from: initialData?.from || "",
-    to: initialData?.to || "",
-    travelDate: "",
-    availableSpace: initialData?.availableSpace || "",
-    acceptedItems: initialData?.acceptedItems || [],
-    deliveryArea: initialData?.deliveryArea || "",
+    originCityId: initialData?.originCityId || "", destinationCityId: initialData?.destinationCityId || "",
+    from: initialData?.originCityId ? initialData.from : "", to: initialData?.destinationCityId ? initialData.to : "",
+    travelDate: "", availableSpace: initialData?.availableSpace || "",
+    acceptedItems: initialData?.acceptedItems || [], deliveryArea: initialData?.deliveryArea || "",
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState("");
@@ -29,7 +25,7 @@ const CreateTrip = ({ onClose, onCreate, initialData = null }) => {
       : [...previous.acceptedItems, item],
   }));
 
-  const isValid = formData.from && formData.to && formData.from !== formData.to && formData.travelDate && formData.availableSpace && formData.acceptedItems.length > 0;
+  const isValid = formData.originCityId && formData.destinationCityId && formData.travelDate && formData.availableSpace && formData.acceptedItems.length > 0;
 
   const handleSubmit = async (event) => {
     event.preventDefault();
@@ -51,23 +47,19 @@ const CreateTrip = ({ onClose, onCreate, initialData = null }) => {
       <section className="market-modal" role="dialog" aria-modal="true" aria-labelledby="trip-modal-title">
         <header className="market-modal-header">
           <span className="modal-icon traveler"><Icon name="bag" size={24} /></span>
-          <div><span className="eyebrow">Travel with purpose</span><h2 id="trip-modal-title">{initialData ? "Repeat this trip" : "Share your trip"}</h2><p>{initialData ? "Your previous details are ready. Just choose the new travel date." : "Offer the luggage space you are comfortable carrying."}</p></div>
+          <div><span className="eyebrow">Travel with purpose</span><h2 id="trip-modal-title">{initialData ? "Repeat this trip" : "Share your trip"}</h2><p>{initialData ? "Confirm the route and choose your new travel date." : "Offer the luggage space you are comfortable carrying."}</p></div>
           <button className="icon-button modal-close" type="button" onClick={onClose} aria-label="Close"><Icon name="close" /></button>
         </header>
 
         <form className="market-form" onSubmit={handleSubmit}>
           <fieldset className="form-section"><legend><Icon name="route" /> Your route</legend>
-            <div className="form-grid two-columns">
-              <label className="market-field">Leaving from<span><select value={formData.from} onChange={(e) => setField("from", e.target.value)} required><option value="">Choose a city</option><CityOptions /></select></span></label>
-              <label className="market-field">Going to<span><select value={formData.to} onChange={(e) => setField("to", e.target.value)} required><option value="">Choose a city</option><CityOptions /></select></span></label>
-            </div>
-            {formData.from && formData.from === formData.to && <p className="field-error">Choose two different cities.</p>}
+            <LocationFields originCityId={formData.originCityId} destinationCityId={formData.destinationCityId} onChange={(location) => setFormData((previous) => ({ ...previous, ...location }))} />
           </fieldset>
 
           <fieldset className="form-section"><legend><Icon name="calendar" /> Trip details</legend>
             <div className="form-grid two-columns">
               <label className="market-field">Travel date<input type="date" value={formData.travelDate} onChange={(e) => setField("travelDate", e.target.value)} min={new Date().toISOString().split("T")[0]} required /></label>
-              <label className="market-field">Available space<select value={formData.availableSpace} onChange={(e) => setField("availableSpace", e.target.value)} required><option value="">Choose a size</option>{Object.entries(SIZE_LABELS).map(([key, label]) => <option key={key} value={key}>{label}</option>)}</select></label>
+              <label className="market-field">Available space<select value={formData.availableSpace} onChange={(e) => setField("availableSpace", e.target.value)} required><option value="">Choose a capacity</option>{Object.entries(SPACE_OPTIONS).map(([key, label]) => <option key={key} value={key}>{label}</option>)}</select></label>
             </div>
           </fieldset>
 
@@ -87,190 +79,3 @@ const CreateTrip = ({ onClose, onCreate, initialData = null }) => {
 };
 
 export default CreateTrip;
-
-
-
-
-
-
-
-
-
-
-
-
-
-// import React, { useState } from "react";
-// import { useAuth } from "../../hooks/useAuth";
-// import { useStorage } from "../../hooks/useStorage";
-// import { ITEM_TYPE_LABELS, SIZE_LABELS, ALL_CITIES } from "../../utils/constants";
-// import { styles} from '../../styles/styles';
-
-// const CreateTrip = ({ onClose, onCreate }) => {
-//   const { currentUser, getTheme } = useAuth();
-//   const { createTrip } = useStorage();
-//   const theme = getTheme();
-
-//   const [formData, setFormData] = useState({
-//     from: "",
-//     to: "",
-//     travelDate: "",
-//     availableSpace: "",
-//     acceptedItems: [],
-//     deliveryArea: "",
-//   });
-
-//   const toggleItem = (item) => {
-//     setFormData((prev) => ({
-//       ...prev,
-//       acceptedItems: prev.acceptedItems.includes(item)
-//         ? prev.acceptedItems.filter((i) => i !== item)
-//         : [...prev.acceptedItems, item],
-//     }));
-//   };
-
-//   const handleSubmit = (e) => {
-//     e.preventDefault();
-
-//     const trip = createTrip({
-//       ...formData,
-//       travelerId: currentUser.id,
-//       travelerName: currentUser.name,
-//     });
-
-//     onCreate?.(trip);
-//     onClose?.();
-//   };
-
-//   const isValid =
-//     formData.from &&
-//     formData.to &&
-//     formData.from !== formData.to &&
-//     formData.travelDate &&
-//     formData.availableSpace &&
-//     formData.acceptedItems.length > 0;
-
-//   return (
-//     <div style={styles.modalOverlay} onClick={onClose}>
-//       <div style={styles.modal} onClick={(e) => e.stopPropagation()}>
-//         <h2 style={styles.modalTitle}>Post Your Trip</h2>
-
-//         <form onSubmit={handleSubmit} style={styles.form}>
-//           <div style={styles.formRow}>
-//             <div style={styles.formGroup}>
-//               <label style={styles.label}>From *</label>
-//               <select
-//                 style={styles.select}
-//                 value={formData.from}
-//                 onChange={(e) => setFormData({ ...formData, from: e.target.value })}
-//                 required
-//               >
-//                 <option value="">Select city</option>
-//                 {ALL_CITIES.map((city) => (
-//                   <option key={city} value={city}>
-//                     {city}
-//                   </option>
-//                 ))}
-//               </select>
-//             </div>
-
-//             <div style={styles.formGroup}>
-//               <label style={styles.label}>To *</label>
-//               <select
-//                 style={styles.select}
-//                 value={formData.to}
-//                 onChange={(e) => setFormData({ ...formData, to: e.target.value })}
-//                 required
-//               >
-//                 <option value="">Select city</option>
-//                 {ALL_CITIES.map((city) => (
-//                   <option key={city} value={city}>
-//                     {city}
-//                   </option>
-//                 ))}
-//               </select>
-//             </div>
-//           </div>
-
-//           <div style={styles.formRow}>
-//             <div style={styles.formGroup}>
-//               <label style={styles.label}>Travel Date *</label>
-//               <input
-//                 type="date"
-//                 style={styles.input}
-//                 value={formData.travelDate}
-//                 onChange={(e) => setFormData({ ...formData, travelDate: e.target.value })}
-//                 min={new Date().toISOString().split("T")[0]}
-//                 required
-//               />
-//             </div>
-
-//             <div style={styles.formGroup}>
-//               <label style={styles.label}>Available Space *</label>
-//               <select
-//                 style={styles.select}
-//                 value={formData.availableSpace}
-//                 onChange={(e) => setFormData({ ...formData, availableSpace: e.target.value })}
-//                 required
-//               >
-//                 <option value="">Select space</option>
-//                 {Object.keys(SIZE_LABELS).map((key) => (
-//                   <option key={key} value={key}>
-//                     {SIZE_LABELS[key]}
-//                   </option>
-//                 ))}
-//               </select>
-//             </div>
-//           </div>
-
-//           <div style={styles.formGroup}>
-//             <label style={styles.label}>Items You Can Carry *</label>
-//             <div style={styles.checkboxGroup}>
-//               {Object.keys(ITEM_TYPE_LABELS).map((key) => (
-//                 <label key={key} style={styles.checkboxLabel}>
-//                   <input
-//                     type="checkbox"
-//                     checked={formData.acceptedItems.includes(key)}
-//                     onChange={() => toggleItem(key)}
-//                   />
-//                   <span style={{ marginLeft: 8 }}>{ITEM_TYPE_LABELS[key]}</span>
-//                 </label>
-//               ))}
-//             </div>
-//           </div>
-
-//           <div style={styles.formGroup}>
-//             <label style={styles.label}>Delivery Area (optional)</label>
-//             <input
-//               type="text"
-//               style={styles.input}
-//               value={formData.deliveryArea}
-//               onChange={(e) => setFormData({ ...formData, deliveryArea: e.target.value })}
-//               placeholder="e.g., Central London only"
-//             />
-//           </div>
-
-//           <div style={styles.modalActions}>
-//             <button type="button" onClick={onClose} style={styles.cancelButton}>
-//               Cancel
-//             </button>
-
-//             <button
-//               type="submit"
-//               disabled={!isValid}
-//               style={{
-//                 ...styles.primaryButton,
-//                 backgroundColor: theme.primary,
-//                 opacity: isValid ? 1 : 0.5,
-//               }}
-//             >
-//               Post Trip
-//             </button>
-//           </div>
-//         </form>
-//       </div>
-//     </div>
-//   );
-// };
-
-// export default CreateTrip;

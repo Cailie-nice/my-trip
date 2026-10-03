@@ -6,7 +6,7 @@ import { ITEM_TYPE_LABELS, SIZE_LABELS } from "../../utils/constants";
 import Icon from "../common/Icon";
 import { shareRequestOnWhatsApp } from "../../utils/share";
 
-const RequestCard = ({ request, onHelp, onOpenProfile }) => {
+const RequestCard = ({ request, onHelp, onOpenProfile, publicMode = false }) => {
   const { getUserById, createMatchRequest, getOutgoingMatchRequests } = useStorage();
   const { currentUser, getTheme, isTraveler } = useAuth();
   const theme = getTheme();
@@ -91,11 +91,9 @@ const RequestCard = ({ request, onHelp, onOpenProfile }) => {
           </h3>
 
           <div style={styles.senderInfo}>
-            <button type="button" className="profile-name-link compact" onClick={() => onOpenProfile?.(request.senderId)}>
-              {sender?.name || request.senderName || "Sender"}
-            </button>
+            {publicMode ? <span>Chagga sender</span> : <button type="button" className="profile-name-link compact" onClick={() => onOpenProfile?.(request.senderId)}>{sender?.name || request.senderName || "Sender"}</button>}
             <span style={styles.dot}>•</span>
-            <span className="rating-with-icon"><Icon name="star" size={14} /> {sender?.rating == null ? "New member" : sender.rating.toFixed(1)}</span>
+            <span className="rating-with-icon"><Icon name="star" size={14} /> {publicMode ? "Sign in for profile" : sender?.rating == null ? "New member" : sender.rating.toFixed(1)}</span>
           </div>
         </div>
 
@@ -130,16 +128,8 @@ const RequestCard = ({ request, onHelp, onOpenProfile }) => {
       </div>
 
       <div className="card-actions">
-        <button type="button" className="secondary-action share-action" onClick={() => shareRequestOnWhatsApp(request)}>
-          <Icon name="share" size={17} /> Share
-        </button>
-        <button className="card-action"
-          onClick={handleOfferHelp}
-          disabled={alreadySent || offerSentFlash}
-          style={buttonStyle}
-        >
-          {buttonText}
-        </button>
+        <button type="button" className="secondary-action share-action" onClick={() => shareRequestOnWhatsApp(request)}><Icon name="share" size={17} /> Share</button>
+        <button className="card-action" onClick={handleOfferHelp} disabled={!publicMode && (alreadySent || offerSentFlash)} style={buttonStyle}>{publicMode ? "Log in to respond" : buttonText}</button>
       </div>
     </article>
   );

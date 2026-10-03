@@ -22,6 +22,8 @@ const mapTrip = (trip, names = {}) => ({
   travelerName: names[trip.traveler_id] || "Traveler",
   from: trip.from_location,
   to: trip.to_location,
+  originCityId: trip.origin_city_id || null,
+  destinationCityId: trip.destination_city_id || null,
   travelDate: trip.travel_date,
   availableSpace: trip.available_space,
   acceptedItems: trip.accepted_items || [],
@@ -39,6 +41,16 @@ const mapRequest = (request, names = {}) => ({
   to: request.to_location,
   neededBy: request.needed_by,
   size: request.size,
+  estimatedWeightKg: request.estimated_weight_kg == null ? null : Number(request.estimated_weight_kg),
+  declaredValueUsd: request.declared_value_usd == null ? null : Number(request.declared_value_usd),
+  billableWeightKg: request.billable_weight_kg == null ? null : Number(request.billable_weight_kg),
+  deliveryPriceUsd: request.delivery_price_usd == null ? null : Number(request.delivery_price_usd),
+  serviceFeeUsd: request.service_fee_usd == null ? null : Number(request.service_fee_usd),
+  protectionFeeUsd: request.protection_fee_usd == null ? null : Number(request.protection_fee_usd),
+  totalPriceUsd: request.total_price_usd == null ? null : Number(request.total_price_usd),
+  originCityId: request.origin_city_id || null,
+  destinationCityId: request.destination_city_id || null,
+  otherItemDescription: request.other_item_description || "",
   description: request.description || "",
   status: request.status,
   createdAt: request.created_at,
@@ -79,7 +91,7 @@ const mapDelivery = (delivery) => ({
   participants: [delivery.sender_id, delivery.traveler_id],
 });
 
-const mapMessage = (message) => ({
+const mapMessage = (message, attachmentByMessage = {}) => ({
   id: message.id,
   deliveryId: message.delivery_id,
   transactionId: message.delivery_id,
@@ -89,6 +101,18 @@ const mapMessage = (message) => ({
   type: message.kind,
   readAt: message.read_at,
   createdAt: message.created_at,
+  attachment: attachmentByMessage[message.id] || null,
+});
+
+const mapAttachment = (attachment) => ({
+  id: attachment.id,
+  messageId: attachment.message_id,
+  deliveryId: attachment.delivery_id,
+  uploadedBy: attachment.uploaded_by,
+  storagePath: attachment.storage_path,
+  fileName: attachment.file_name,
+  mimeType: attachment.mime_type,
+  sizeBytes: attachment.size_bytes,
 });
 
 const mapRating = (rating) => ({
@@ -109,20 +133,52 @@ export const StorageProvider = ({ children }) => {
   const [matchRequests, setMatchRequests] = useState([]);
   const [deliveries, setDeliveries] = useState([]);
   const [messages, setMessages] = useState([]);
+  const [attachments, setAttachments] = useState([]);
   const [ratings, setRatings] = useState([]);
+  const [countries, setCountries] = useState([]);
+  const [cities, setCities] = useState([]);
+  const [routes, setRoutes] = useState([]);
+  const [platformSettings, setPlatformSettings] = useState({});
   const [isMarketplaceLoading, setIsMarketplaceLoading] = useState(false);
   const [marketplaceError, setMarketplaceError] = useState("");
 
   const refreshMarketplace = useCallback(async () => {
-    if (!supabase || !currentUser) {
-      setUsers(currentUser ? [currentUser] : []);
-      setRequests([]); setTrips([]); setMatchRequests([]);
-      setDeliveries([]); setMessages([]); setRatings([]);
+    if (!supabase) {
+      setUsers([]); setRequests([]); setTrips([]); setMatchRequests([]);
+      setDeliveries([]); setMessages([]); setAttachments([]); setRatings([]);
+      setCountries([]); setCities([]); setRoutes([]); setPlatformSettings({});
       return;
     }
 
     setIsMarketplaceLoading(true);
     setMarketplaceError("");
+
+    if (!currentUser) {
+      const publicResults = await Promise.all([
+        supabase.from("countries").select("*").order("name"),
+        supabase.from("cities").select("*").order("name"),
+        supabase.from("routes").select("*").order("created_at"),
+        supabase.from("platform_settings").select("key, value"),
+        supabase.from("public_trip_listings").select("*").order("travel_date"),
+        supabase.from("public_request_listings").select("*").order("needed_by"),
+      ]);
+      const failed = publicResults.find((result) => result.error);
+      if (failed) {
+        setMarketplaceError(failed.error.message);
+        setIsMarketplaceLoading(false);
+        return;
+      }
+      setCountries(publicResults[0].data || []);
+      setCities(publicResults[1].data || []);
+      setRoutes(publicResults[2].data || []);
+      setPlatformSettings(Object.fromEntries((publicResults[3].data || []).map((entry) => [entry.key, entry.value])));
+      setTrips((publicResults[4].data || []).map((trip) => mapTrip(trip)));
+      setRequests((publicResults[5].data || []).map((request) => mapRequest(request)));
+      setUsers([]); setMatchRequests([]); setDeliveries([]); setMessages([]); setAttachments([]); setRatings([]);
+      setIsMarketplaceLoading(false);
+      return;
+    }
+
     const results = await Promise.all([
       supabase.from("profiles").select("id, full_name, active_role, rating, completed_deliveries, verification_status, avatar_url, usual_routes, created_at"),
       supabase.from("trips").select("*").order("travel_date", { ascending: true }),
@@ -131,6 +187,11 @@ export const StorageProvider = ({ children }) => {
       supabase.from("deliveries").select("*").order("created_at", { ascending: false }),
       supabase.from("messages").select("*").order("created_at", { ascending: true }),
       supabase.from("ratings").select("*").order("created_at", { ascending: false }),
+      supabase.from("countries").select("*").order("name"),
+      supabase.from("cities").select("*").order("name"),
+      supabase.from("routes").select("*").order("created_at"),
+      supabase.from("platform_settings").select("key, value"),
+      supabase.from("message_attachments").select("*").order("created_at"),
     ]);
 
     const failed = results.find((result) => result.error);
@@ -147,8 +208,15 @@ export const StorageProvider = ({ children }) => {
     setRequests(results[2].data.map((request) => mapRequest(request, names)));
     setMatchRequests(results[3].data.map((proposal) => mapProposal(proposal, names)));
     setDeliveries(results[4].data.map(mapDelivery));
-    setMessages(results[5].data.map(mapMessage));
+    const mappedAttachments = (results[11].data || []).map(mapAttachment);
+    const attachmentByMessage = Object.fromEntries(mappedAttachments.map((attachment) => [attachment.messageId, attachment]));
+    setAttachments(mappedAttachments);
+    setMessages(results[5].data.map((message) => mapMessage(message, attachmentByMessage)));
     setRatings(results[6].data.map(mapRating));
+    setCountries(results[7].data || []);
+    setCities(results[8].data || []);
+    setRoutes(results[9].data || []);
+    setPlatformSettings(Object.fromEntries((results[10].data || []).map((entry) => [entry.key, entry.value])));
     setIsMarketplaceLoading(false);
   }, [currentUser]);
 
@@ -169,18 +237,10 @@ export const StorageProvider = ({ children }) => {
   const getRequestById = (id) => requests.find((request) => request.id === id);
   const getRequestsBySender = (id) => requests.filter((request) => request.senderId === id);
   const today = new Date().toISOString().slice(0, 10);
-  const getActiveRequests = () => requests.filter((request) =>
-    request.status === "pending" &&
-    request.neededBy >= today &&
-    request.senderId !== currentUser?.id
-  );
+  const getActiveRequests = () => requests.filter((request) => request.status === "pending" && request.neededBy >= today && request.senderId !== currentUser?.id);
   const getTripById = (id) => trips.find((trip) => trip.id === id);
   const getTripsByTraveler = (id) => trips.filter((trip) => trip.travelerId === id);
-  const getActiveTrips = () => trips.filter((trip) =>
-    trip.status === "available" &&
-    trip.travelDate >= today &&
-    trip.travelerId !== currentUser?.id
-  );
+  const getActiveTrips = () => trips.filter((trip) => trip.status === "available" && trip.travelDate >= today && trip.travelerId !== currentUser?.id);
   const getDeliveriesByUser = (id) => deliveries.filter((delivery) => delivery.participants.includes(id));
   const getDeliveryById = (id) => deliveries.find((delivery) => delivery.id === id);
   const getMessagesByDelivery = (id) => messages.filter((message) => message.deliveryId === id);
@@ -193,7 +253,11 @@ export const StorageProvider = ({ children }) => {
     const { data, error } = await supabase.from("delivery_requests").insert({
       sender_id: currentUser.id, item_type: requestData.itemType,
       from_location: requestData.from, to_location: requestData.to,
+      origin_city_id: requestData.originCityId, destination_city_id: requestData.destinationCityId,
       needed_by: requestData.neededBy, size: requestData.size,
+      estimated_weight_kg: requestData.estimatedWeightKg,
+      declared_value_usd: requestData.declaredValueUsd || 0,
+      other_item_description: requestData.otherItemDescription?.trim() || null,
       description: requestData.description?.trim() || null,
     }).select().single();
     if (error) throw error;
@@ -206,6 +270,7 @@ export const StorageProvider = ({ children }) => {
     const { data, error } = await supabase.from("trips").insert({
       traveler_id: currentUser.id, from_location: tripData.from,
       to_location: tripData.to, travel_date: tripData.travelDate,
+      origin_city_id: tripData.originCityId, destination_city_id: tripData.destinationCityId,
       available_space: tripData.availableSpace, accepted_items: tripData.acceptedItems,
       delivery_area: tripData.deliveryArea?.trim() || null,
     }).select().single();
@@ -241,23 +306,53 @@ export const StorageProvider = ({ children }) => {
     return { success: true };
   };
 
-  const sendMessage = async (deliveryId, body) => {
+  const sendMessage = async (deliveryId, body, file = null) => {
     const delivery = getDeliveryById(deliveryId);
     const recipientId = delivery.senderId === currentUser.id ? delivery.travelerId : delivery.senderId;
     const { data, error } = await supabase.from("messages").insert({
       delivery_id: deliveryId, sender_id: currentUser.id,
-      recipient_id: recipientId, body: body.trim(), kind: "text",
+      recipient_id: recipientId, body: body.trim() || (file ? `Shared ${file.name}` : ""), kind: "text",
     }).select().single();
     if (error) throw error;
-    const message = mapMessage(data);
+    let attachment = null;
+    if (file) {
+      const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, "-").slice(-120);
+      const storagePath = `${deliveryId}/${data.id}/${safeName}`;
+      const { error: uploadError } = await supabase.storage.from("message-attachments").upload(storagePath, file, { contentType: file.type, upsert: false });
+      if (uploadError) { await supabase.from("messages").delete().eq("id", data.id); throw uploadError; }
+      const { data: attachmentData, error: attachmentError } = await supabase.from("message_attachments").insert({
+        message_id: data.id, delivery_id: deliveryId, uploaded_by: currentUser.id,
+        storage_path: storagePath, file_name: file.name, mime_type: file.type, size_bytes: file.size,
+      }).select().single();
+      if (attachmentError) {
+        await supabase.storage.from("message-attachments").remove([storagePath]);
+        await supabase.from("messages").delete().eq("id", data.id);
+        throw attachmentError;
+      }
+      attachment = mapAttachment(attachmentData);
+      setAttachments((previous) => [...previous, attachment]);
+    }
+    const message = mapMessage(data, attachment ? { [data.id]: attachment } : {});
     setMessages((previous) => [...previous, message]);
     return message;
   };
 
   const deleteMessage = async (id) => {
+    const attachment = attachments.find((item) => item.messageId === id);
+    if (attachment) await supabase.storage.from("message-attachments").remove([attachment.storagePath]);
     const { error } = await supabase.from("messages").delete().eq("id", id);
     if (error) throw error;
     setMessages((previous) => previous.filter((message) => message.id !== id));
+    setAttachments((previous) => previous.filter((item) => item.messageId !== id));
+  };
+
+  const downloadAttachment = async (attachment) => {
+    const { data, error } = await supabase.storage.from("message-attachments").download(attachment.storagePath);
+    if (error) throw error;
+    const url = URL.createObjectURL(data);
+    const link = document.createElement("a");
+    link.href = url; link.download = attachment.fileName; link.click();
+    window.setTimeout(() => URL.revokeObjectURL(url), 1000);
   };
 
   const markMessagesRead = async (deliveryId) => {
@@ -314,7 +409,21 @@ export const StorageProvider = ({ children }) => {
     return { success: true, avatarUrl };
   };
 
+  const requestLocation = async ({ country, city, direction, pairedCityId, comment }) => {
+    if (!currentUser) return { success: false, error: "Sign in to request a location." };
+    const { error } = await supabase.from("location_requests").insert({
+      requested_by: currentUser.id,
+      requested_country: country.trim(),
+      requested_city: city.trim(),
+      direction,
+      paired_city_id: pairedCityId || null,
+      comment: comment?.trim() || null,
+    });
+    return error ? { success: false, error: error.message } : { success: true };
+  };
+
   const value = {
+    countries, cities, routes, platformSettings, requestLocation,
     users, getUserById,
     requests, createRequest, getRequestById, getRequestsBySender, getActiveRequests,
     trips, createTrip, getTripById, getTripsByTraveler, getActiveTrips,
@@ -322,7 +431,7 @@ export const StorageProvider = ({ children }) => {
     acceptMatchRequest: (id) => respondToMatchRequest(id, "accepted"),
     declineMatchRequest: (id) => respondToMatchRequest(id, "declined"),
     deliveries, getDeliveriesByUser, getDeliveryById, updateDeliveryStatus, confirmDelivery,
-    messages, sendMessage, deleteMessage, markMessagesRead, getMessagesByDelivery, getMessagesByTransaction, unreadMessageCount,
+    messages, sendMessage, deleteMessage, downloadAttachment, markMessagesRead, getMessagesByDelivery, getMessagesByTransaction, unreadMessageCount,
     ratings, getRatingsByUser, hasRatedDelivery, submitRating,
     updateProfile, uploadProfilePicture,
     refreshMarketplace, isMarketplaceLoading, marketplaceError,

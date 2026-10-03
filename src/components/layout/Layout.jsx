@@ -7,22 +7,13 @@ import FeedView from "../feed/FeedView";
 import ActivityView from "../activity/ActivityView";
 import ChatView from "../chat/ChatView";
 import ProfileView from "../profile/ProfileView";
-import LegalLinks from "../legal/LegalLinks";
 
 const Layout = () => {
   const [activeView, setActiveView] = useState("feed");
   const [profileUserId, setProfileUserId] = useState(null);
 
-  const handleViewChange = (view) => {
-    if (view === "profile") setProfileUserId(null);
-    setActiveView(view);
-  };
-
-  const openProfile = (userId) => {
-    setProfileUserId(userId);
-    setActiveView("profile");
-    window.scrollTo({ top: 0, behavior: "smooth" });
-  };
+  const handleViewChange = (view) => { if (view === "profile") setProfileUserId(null); setActiveView(view); };
+  const openProfile = (userId) => { if (!userId) return; setProfileUserId(userId); setActiveView("profile"); window.scrollTo({ top: 0, behavior: "smooth" }); };
 
   const renderView = () => {
     switch (activeView) {
@@ -44,10 +35,6 @@ const Layout = () => {
       <Header />
       <Navigation activeView={activeView} onViewChange={handleViewChange} />
       <main className="app-main">{renderView()}</main>
-      <footer className="app-footer">
-        <span>© 2026 Chagga</span>
-        <LegalLinks />
-      </footer>
     </div>
   );
 };

@@ -1,8 +1,10 @@
 // src/components/feed/FeedFilters.jsx
 import React, { useState } from 'react';
-import { ITEM_TYPE_LABELS, SIZE_LABELS, ALL_CITIES } from '../../utils/constants';
+import { ITEM_TYPE_LABELS, SIZE_LABELS } from '../../utils/constants';
+import { useStorage } from '../../hooks/useStorage';
 
 const FeedFilters = ({ isSender, onFilterChange, theme }) => {
+  const { countries, cities } = useStorage();
   const [showFilters, setShowFilters] = useState(false);
   const [filters, setFilters] = useState({
     from: '',
@@ -35,6 +37,11 @@ const FeedFilters = ({ isSender, onFilterChange, theme }) => {
   };
 
   const hasActiveFilters = Object.values(filters).some(v => v && v !== 'date');
+  const countryById = Object.fromEntries(countries.map((country) => [country.id, country]));
+  const locationOptions = cities
+    .filter((city) => city.is_active && countryById[city.country_id]?.is_active)
+    .map((city) => `${city.name}, ${countryById[city.country_id].name}`)
+    .sort();
 
   const styles = {
     container: {
@@ -155,7 +162,7 @@ const FeedFilters = ({ isSender, onFilterChange, theme }) => {
                 onChange={(e) => handleFilterChange('from', e.target.value)}
               >
                 <option value="">Any city</option>
-                {ALL_CITIES.map(city => (
+                {locationOptions.map(city => (
                   <option key={city} value={city}>{city}</option>
                 ))}
               </select>
@@ -169,7 +176,7 @@ const FeedFilters = ({ isSender, onFilterChange, theme }) => {
                 onChange={(e) => handleFilterChange('to', e.target.value)}
               >
                 <option value="">Any city</option>
-                {ALL_CITIES.map(city => (
+                {locationOptions.map(city => (
                   <option key={city} value={city}>{city}</option>
                 ))}
               </select>

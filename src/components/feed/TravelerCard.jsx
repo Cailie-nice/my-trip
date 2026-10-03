@@ -1,10 +1,12 @@
+
+// src/components/feed/TravelerCard.jsx
 import React, { useMemo, useState } from "react";
 import { useStorage } from "../../hooks/useStorage";
 import { useAuth } from "../../hooks/useAuth";
 import { ITEM_TYPE_LABELS, SIZE_LABELS, ITEM_TYPES } from "../../utils/constants";
 import Icon from "../common/Icon";
 
-const TravelerCard = ({ trip, onSendRequest, onOpenProfile }) => {
+const TravelerCard = ({ trip, onSendRequest, onOpenProfile, publicMode = false }) => {
   const { getUserById, createMatchRequest, getOutgoingMatchRequests } = useStorage();
   const { currentUser, getTheme, isSender } = useAuth();
   const theme = getTheme();
@@ -88,16 +90,11 @@ const TravelerCard = ({ trip, onSendRequest, onOpenProfile }) => {
 
       <div style={styles.header}>
         <div style={styles.userInfo}>
-          <h3 className="card-person" style={styles.name}>
-            <Icon name="bag" size={19} />
-            <button type="button" className="profile-name-link" onClick={() => onOpenProfile?.(trip.travelerId)}>
-              {traveler?.name || trip.travelerName || "Traveler"}
-            </button>
-          </h3>
+          <h3 className="card-person" style={styles.name}><Icon name="bag" size={19} /> {publicMode ? "Chagga traveller" : <button type="button" className="profile-name-link" onClick={() => onOpenProfile?.(trip.travelerId)}>{traveler?.name || trip.travelerName || "Traveler"}</button>}</h3>
 
           <div style={styles.ratingRow}>
             <Icon name="star" size={14} />
-            <span>{traveler?.rating == null ? "New member" : traveler.rating.toFixed(1)}</span>
+            <span>{publicMode ? "Sign in for profile" : traveler?.rating == null ? "New member" : traveler.rating.toFixed(1)}</span>
             <span style={styles.dot}>•</span>
             <span>{traveler?.completedDeliveries || 0} deliveries</span>
           </div>
@@ -145,7 +142,7 @@ const TravelerCard = ({ trip, onSendRequest, onOpenProfile }) => {
         disabled={alreadySent || requestSentFlash}
         style={buttonStyle}
       >
-        {buttonText}
+        {publicMode ? "Log in to contact" : buttonText}
       </button>
     </article>
   );

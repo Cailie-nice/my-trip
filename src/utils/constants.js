@@ -7,16 +7,24 @@ export const ROLES = {
 //Item categories 
 export const ITEM_TYPES ={
     DOCUMENTS: 'documents',
+    CLOTHING_ACCESSORIES: 'clothing_accessories',
     ELECTRONICS: 'electronics',
-    CLOTHES: 'clothes',
-    GIFTS: 'gifts',
+    GIFTS_PERSONAL: 'gifts_personal',
+    BOOKS_EDUCATION: 'books_education',
+    PERSONAL_CARE: 'personal_care',
+    HOUSEHOLD: 'household',
+    OTHER: 'other',
 };
 
 export const ITEM_TYPE_LABELS = {
     [ITEM_TYPES.DOCUMENTS]: 'Documents',
+    [ITEM_TYPES.CLOTHING_ACCESSORIES]: 'Clothing & accessories',
     [ITEM_TYPES.ELECTRONICS]: 'Electronics',
-    [ITEM_TYPES.CLOTHES]: 'Clothes',
-    [ITEM_TYPES.GIFTS]: 'Gifts',
+    [ITEM_TYPES.GIFTS_PERSONAL]: 'Gifts & personal items',
+    [ITEM_TYPES.BOOKS_EDUCATION]: 'Books & educational materials',
+    [ITEM_TYPES.PERSONAL_CARE]: 'Personal care',
+    [ITEM_TYPES.HOUSEHOLD]: 'Small household items',
+    [ITEM_TYPES.OTHER]: 'Other',
 }; 
 
 export const SIZES = {
@@ -29,51 +37,11 @@ export const SIZE_LABELS = {
     [SIZES.SMALL]: 'Small (<1 kg)',
     [SIZES.MEDIUM]: 'Medium (1-3 kg)',
     [SIZES.LARGE]: 'Large (3-5 kg)',
+    light: 'Light (up to 1 kg)',
+    standard: 'Standard (1-3 kg)',
+    extra_large: 'Extra large (5-10 kg)',
+    heavy: 'Heavy (10+ kg)',
 };
-
-export const AFRICAN_CITIES = [
-    'Nairobi, Kenya',
-    'Lagos, Nigeria',
-    'Cairo, Egypt',
-    'Johannesburg, South Africa',
-    'Cape Town, South Africa',
-    'Accra, Ghana',
-    'Kampala, Uganda',
-    'Dakar, Senegal',
-    'Addis Ababa, Ethiopia',
-    'Tunis, Tunisia',
-    'Casablanca, Morocco',
-    'Dar es Salaam, Tanzania', 
-    'Abuja, Nigeria',
-    'Kigali, Rwanda',
-    'Bujumbura, Burundi',
-];
-
-export const EUROPEAN_CITIES = [
-    'London, UK',
-    'Cambridge, UK',
-    'Edinburgh, UK',
-    'Dublin, Ireland',
-    'Lisbon, Portugal',
-    'Madrid, Spain',
-    'Berlin, Germany',
-    'Rome, Italy',
-    'Brussels, Belgium',
-    'Paris, France',
-    'Berlin, Germany',
-    'Madrid, Spain',
-    'Rome, Italy',
-    'Amsterdam, Netherlands',
-    'Stockholm, Sweden',
-    'Oslo, Norway',
-    'Copenhagen, Denmark',
-    'Helsinki, Finland'
-];
-
-export const ALL_CITIES = [
-    ...AFRICAN_CITIES,
-    ...EUROPEAN_CITIES,
-];
 
 export const CORRIDORS = {
     AFRICA_AFRICA : 'Africa_Africa',
@@ -116,44 +84,25 @@ export const CHAT_PHASES = {
 
 
 export const THEME_COLORS = {
-  sender: {
-    primary: "#dc2626",
-    primaryHover: "#b91c1c",
-    light: "#fee2e2",
-    medium: "#fecaca",
-    gradient: "linear-gradient(135deg, #dc2626 0%, #ef4444 100%)",
-    border: "#fecaca",
+sender: {
+    primary: "#e3a33c",
+    primaryHover: "#bf7d18",
+    light: "#fff5dc",
+    medium: "#f4d79b",
+    border: "#eac879",
+    text: "#0c392a",
   },
   traveler: {
-    primary: "#2563eb",
-    primaryHover: "#1d4ed8",
-    light: "#dbeafe",
-    medium: "#bfdbfe",
-    gradient: "linear-gradient(135deg, #2563eb 0%, #3b82f6 100%)",
-    border: "#bfdbfe",
+    primary: "#2f6b54",
+    primaryHover: "#184234",
+    light: "#e7f0ea",
+    medium: "#c3d8cc",
+    border: "#9ebdac",
+    text: "#ffffff",
   },
 };
 
 
-export const getCorridor = (origin, destination) =>{
-    const originIsAfrican = AFRICAN_CITIES.includes(origin);
-    const destIsAfrican = AFRICAN_CITIES.includes(destination);
-
-    if(originIsAfrican && destIsAfrican){
-        return CORRIDORS.AFRICA_AFRICA;
-    } else if (originIsAfrican && !destIsAfrican){
-        return CORRIDORS.AFRICA_EUROPE;
-    } else if (!originIsAfrican && destIsAfrican) { 
-        return CORRIDORS.EUROPE_AFRICA;
-    }
-    return null;
-}; 
-
-export const isValidRoute = (origin, destination) => {
-    if (origin === destination) return false;
-    const corridor = getCorridor(origin, destination);
-    return corridor !== null;
-}; 
 
 export const formatDate = (date) =>{
     if(!date) return '';
